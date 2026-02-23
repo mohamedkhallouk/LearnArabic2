@@ -43,7 +43,7 @@ export function useDatabase(userId: string | null) {
       for (const s of allSRS) map.set(s.itemId, s);
       setSrsMap(map);
       setLoading(false);
-      setInitialized(allWords.length > 0);
+      setInitialized(allWords.length > 0 && allSRS.length > 0);
     } catch {
       setLoading(false);
     }
@@ -56,12 +56,16 @@ export function useDatabase(userId: string | null) {
 
   const initializeWordList = useCallback(async () => {
     if (!userId) return;
-    const items = buildWordList();
-    const srsStates = items.map(w => createInitialSRS(userId, w.id));
-
-    await db.putWords(items);
-    await db.putManySRS(srsStates);
-    await loadAll();
+    try {
+      const items = buildWordList();
+      const srsStates = items.map(w => createInitialSRS(userId, w.id));
+      await db.putWords(items);
+      await db.putManySRS(srsStates);
+      await loadAll();
+    } catch (e) {
+      console.error('Failed to initialize word list:', e);
+      setLoading(false);
+    }
   }, [userId, loadAll]);
 
   const shuffledWords = useMemo(
