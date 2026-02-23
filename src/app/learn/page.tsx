@@ -69,6 +69,7 @@ function pickExerciseForReview(srs: SRSState, hasExamples: boolean): ExerciseTyp
 function buildSessionQueue(
   newItems: Array<{ word: WordItem; srs: SRSState }>,
   reviewItems: Array<{ word: WordItem; srs: SRSState }>,
+  extraItems: Array<{ word: WordItem; srs: SRSState }> = [],
 ): QueueItem[] {
   const queue: QueueItem[] = [];
 
@@ -84,17 +85,15 @@ function buildSessionQueue(
 
   const shuffledReviews = shuffleArray(reviews);
 
-  // Interleave: for every 2-3 reviews, insert a new-word pair (intro + exercise)
   let ri = 0;
   for (let ni = 0; ni < newPairs.length; ni++) {
     const gap = Math.min(3, Math.ceil(shuffledReviews.length / Math.max(1, newPairs.length)));
     for (let g = 0; g < gap && ri < shuffledReviews.length; g++) {
       queue.push(shuffledReviews[ri++]);
     }
-    queue.push(newPairs[ni][0]); // intro
-    queue.push(newPairs[ni][1]); // first exercise
+    queue.push(newPairs[ni][0]);
+    queue.push(newPairs[ni][1]);
 
-    // Schedule reinforcement later
     const reinforceIdx = queue.length + 4 + Math.floor(Math.random() * 4);
     const reinforceItem: QueueItem = {
       word: newPairs[ni][0].word,
@@ -106,9 +105,22 @@ function buildSessionQueue(
     queue.splice(Math.min(reinforceIdx, queue.length), 0, reinforceItem);
   }
 
-  // Remaining reviews
   while (ri < shuffledReviews.length) {
     queue.push(shuffledReviews[ri++]);
+  }
+
+  // If nothing is new or due, add extra practice from learned words
+  if (queue.length === 0 && extraItems.length > 0) {
+    const practicePool = shuffleArray(extraItems).slice(0, 20);
+    for (const item of practicePool) {
+      queue.push({
+        word: item.word,
+        srs: item.srs,
+        isNew: false,
+        step: 'exercise',
+        exerciseType: pickExerciseForReview(item.srs, item.word.examples?.length > 0),
+      });
+    }
   }
 
   return queue;
@@ -145,7 +157,7 @@ export default function LearnPage() {
     queueBuilt.current = true;
 
     const plan = getDailyPlan(settings.dailyNewTarget, settings.dailyReviewTarget);
-    const q = buildSessionQueue(plan.newItems, plan.reviewItems);
+    const q = buildSessionQueue(plan.newItems, plan.reviewItems, plan.extraItems);
     setQueue(q);
   }, [words, getDailyPlan, settings.dailyNewTarget, settings.dailyReviewTarget]);
 

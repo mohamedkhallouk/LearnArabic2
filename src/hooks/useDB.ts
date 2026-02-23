@@ -90,6 +90,8 @@ export function useDatabase(userId: string | null) {
         } else {
           extraItems.push({ word, srs });
         }
+      } else if (!isNew(srs) && !isMastered(srs)) {
+        extraItems.push({ word, srs });
       }
     }
 
