@@ -135,7 +135,7 @@ export default function LearnPage() {
   const { userId, settings, apiKey, words, srsMap, getDailyPlan, updateWord, updateSRS } = useApp();
   const lang = settings.uiLanguage;
   const sessionStart = useRef(Date.now());
-  const [sessionId, setSessionId] = useState(0);
+  const queueBuilt = useRef(false);
 
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [idx, setIdx] = useState(0);
@@ -151,26 +151,25 @@ export default function LearnPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
-  // Build queue when data is ready, or when a new session is requested
-  useEffect(() => {
-    if (words.length === 0 || srsMap.size === 0) return;
-
+  const buildQueue = useCallback(() => {
     const plan = getDailyPlan(settings.dailyNewTarget, settings.dailyReviewTarget);
     const q = buildSessionQueue(plan.newItems, plan.reviewItems, plan.extraItems);
     setQueue(q);
     setIdx(0);
     setPhase('ready');
+    setAnswer('');
+    setPicked(null);
+    setCorrect(null);
     setSessionStats({ reviewed: 0, newLearned: 0, correct: 0 });
     sessionStart.current = Date.now();
-  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [getDailyPlan, settings.dailyNewTarget, settings.dailyReviewTarget]);
 
-  // Initial build once data is loaded
-  const initialBuilt = useRef(false);
+  // Build queue once when words + SRS data are ready
   useEffect(() => {
-    if (initialBuilt.current || words.length === 0 || srsMap.size === 0) return;
-    initialBuilt.current = true;
-    setSessionId(prev => prev + 1);
-  }, [words, srsMap]);
+    if (queueBuilt.current || words.length === 0 || srsMap.size === 0) return;
+    queueBuilt.current = true;
+    buildQueue();
+  }, [words.length, srsMap.size, buildQueue]);
 
   const cur = queue[idx] as QueueItem | undefined;
 
@@ -380,8 +379,7 @@ export default function LearnPage() {
   if (phase === 'done') {
     const pct = sessionStats.reviewed > 0 ? Math.round((sessionStats.correct / sessionStats.reviewed) * 100) : 0;
     const startNewSession = () => {
-      initialBuilt.current = false;
-      setSessionId(prev => prev + 1);
+      buildQueue();
     };
     return (
       <div className="p-4 page-enter flex flex-col items-center justify-center min-h-[60vh]">
