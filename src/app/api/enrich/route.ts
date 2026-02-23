@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       const resp = await openai.chat.completions.create({
         model: chosenModel,
         messages: [
-          { role: 'system', content: 'Generate 3 NEW short MSA example sentences using the given Arabic word. Return a JSON array of {ar, en, nl} objects. Each sentence should be 4-8 words, natural MSA. Return ONLY the JSON array.' },
+          { role: 'system', content: 'Generate 3 NEW short MSA example sentences using the given Arabic word. Return a JSON array of {ar, en, nl} objects. Each sentence should be 4-8 words, natural MSA. The Arabic text in "ar" MUST include full harakat/vowelization on every word. Return ONLY the JSON array.' },
           { role: 'user', content: arabic_raw },
         ],
         temperature: 0.7,
@@ -35,6 +35,7 @@ Rules:
 - transliteration: simplified consistent system (sh=ش, kh=خ, gh=غ, 3=ع, H=ح, S=ص, D=ض, T=ط, Z=ظ, th=ث, dh=ذ, q=ق).
 - Keep translations short (1-4 words).
 - Provide exactly 3 example sentences. Each must be short (4-8 words), natural MSA, clearly using the word.
+- IMPORTANT: The Arabic text in example sentences (the "ar" field) MUST include full harakat/vowelization on every word.
 - Synonyms: 0-3, only if confident.
 - notes: brief usage note or empty string.
 - Always provide BOTH English AND Dutch.`;

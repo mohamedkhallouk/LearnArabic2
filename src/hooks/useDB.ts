@@ -1,10 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { WordItem, SRSState, DailyPlan } from '@/types';
 import * as db from '@/lib/db';
 import { createInitialSRS, isDue, isNew, isMastered } from '@/lib/srs';
 import { buildWordList } from '@/data/words';
+
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const out = [...arr];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  }
+  for (let i = out.length - 1; i > 0; i--) {
+    h = ((h << 5) - h + i) | 0;
+    const j = Math.abs(h) % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 export function useDatabase(userId: string | null) {
   const [words, setWords] = useState<WordItem[]>([]);
@@ -50,12 +64,17 @@ export function useDatabase(userId: string | null) {
     await loadAll();
   }, [userId, loadAll]);
 
+  const shuffledWords = useMemo(
+    () => (userId ? seededShuffle(words, userId) : words),
+    [words, userId],
+  );
+
   const getDailyPlan = useCallback((dailyNewTarget: number, dailyReviewTarget: number): DailyPlan => {
     const newItems: Array<{ word: WordItem; srs: SRSState }> = [];
     const reviewItems: Array<{ word: WordItem; srs: SRSState }> = [];
     const extraItems: Array<{ word: WordItem; srs: SRSState }> = [];
 
-    for (const word of words) {
+    for (const word of shuffledWords) {
       const srs = srsMap.get(word.id);
       if (!srs) continue;
 
@@ -76,7 +95,7 @@ export function useDatabase(userId: string | null) {
 
     reviewItems.sort((a, b) => a.srs.dueAt - b.srs.dueAt);
     return { newItems, reviewItems, extraItems };
-  }, [words, srsMap]);
+  }, [shuffledWords, srsMap]);
 
   const updateWord = useCallback(async (word: WordItem) => {
     await db.putWord(word);

@@ -94,15 +94,13 @@ export default function WordDetailPage() {
               <div className="space-y-3">
                 {word.examples.map((ex, i) => (
                   <div key={i}>
-                    <div className="arabic-medium text-gray-800">{ex.ar}</div>
+                    <div className="flex items-start gap-2">
+                      <div className="arabic-medium text-gray-800 flex-1">{ex.ar}</div>
+                      <AudioButton itemId={`${word.id}-ex${i}`} text={ex.ar} type="example" size="sm" />
+                    </div>
                     <div className="text-sm text-gray-600 mt-0.5">
                       {lang === 'nl' ? ex.nl || ex.en : ex.en || ex.nl}
                     </div>
-                    {i === 0 && (
-                      <div className="flex mt-1">
-                        <AudioButton itemId={word.id} text={ex.ar} type="example" size="sm" />
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>

@@ -14,17 +14,17 @@
   .arabic-text {
     font-family: 'Noto Naskh Arabic', 'Amiri', 'Traditional Arabic', serif;
     direction: rtl;
-    @apply leading-loose;
+    @apply text-xl leading-loose;
   }
 
   .arabic-large {
     font-family: 'Amiri', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
     direction: rtl;
-    @apply text-4xl font-bold leading-loose;
+    @apply text-5xl font-bold leading-loose;
   }
 
   .arabic-medium {
-    @apply arabic-text text-2xl;
+    @apply arabic-text text-3xl;
   }
 
   .card {
@@ -60,7 +60,7 @@
   }
 
   .input-arabic {
-    @apply input arabic-text text-right text-xl;
+    @apply input arabic-text text-right text-2xl;
   }
 
   .badge {

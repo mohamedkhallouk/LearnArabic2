@@ -141,7 +141,7 @@ export default function LibraryPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="arabic-text text-2xl font-medium truncate">{displayArabic}</span>
+                  <span className="arabic-text text-3xl font-medium truncate">{displayArabic}</span>
                   {word.transliteration && (
                     <span className="text-xs text-gray-400 truncate">{word.transliteration}</span>
                   )}

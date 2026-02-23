@@ -418,7 +418,7 @@ export default function LearnPage() {
       <div className={`text-sm font-semibold ${correct ? 'text-emerald-700' : 'text-red-600'}`}>
         {correct ? t('learn.correct', lang) : t('learn.incorrect', lang)}
       </div>
-      <div className="arabic-text text-2xl font-bold mt-1">{displayAr}</div>
+      <div className="arabic-text text-3xl font-bold mt-1">{displayAr}</div>
       <div className="flex items-center justify-center gap-2 mt-1">
         {tr && <span className="text-gray-500 text-sm">{tr}</span>}
         <span className="text-gray-300">·</span>
@@ -451,7 +451,10 @@ export default function LearnPage() {
                 <div className="space-y-3">
                   {examples.map((ex: ExampleSentence, i: number) => (
                     <div key={i} className="px-2">
-                      <div className="arabic-text text-xl text-gray-800 leading-relaxed">{ex.ar}</div>
+                      <div className="flex items-start gap-2">
+                        <div className="arabic-medium text-gray-800 leading-relaxed flex-1">{ex.ar}</div>
+                        <AudioButton itemId={`${w.id}-ex${i}`} text={ex.ar} type="example" size="sm" />
+                      </div>
                       <div className="text-sm text-gray-500">{lang === 'nl' ? ex.nl || ex.en : ex.en || ex.nl}</div>
                     </div>
                   ))}
@@ -536,7 +539,7 @@ export default function LearnPage() {
               <div className="space-y-1.5">
                 {arabicChoices.map((c, i) => (
                   <button key={i} onClick={() => handleChoice(i)}
-                    className="choice-btn w-full text-center px-4 py-3 arabic-text text-2xl">
+                    className="choice-btn w-full text-center px-4 py-3 arabic-text text-3xl">
                     {c}
                   </button>
                 ))}
@@ -548,7 +551,7 @@ export default function LearnPage() {
             <>
               <div className="space-y-1.5 mb-3">
                 {arabicChoices.map((c, i) => (
-                  <div key={i} className={`choice-btn w-full text-center px-4 py-3 arabic-text text-2xl pointer-events-none
+                  <div key={i} className={`choice-btn w-full text-center px-4 py-3 arabic-text text-3xl pointer-events-none
                     ${i === correctIdx ? 'correct' : ''}
                     ${picked === i && i !== correctIdx ? 'incorrect' : ''}`}>
                     {c}
