@@ -135,7 +135,7 @@ export default function LearnPage() {
   const { userId, settings, apiKey, words, srsMap, getDailyPlan, updateWord, updateSRS } = useApp();
   const lang = settings.uiLanguage;
   const sessionStart = useRef(Date.now());
-  const queueBuilt = useRef(false);
+  const [sessionId, setSessionId] = useState(0);
 
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [idx, setIdx] = useState(0);
@@ -151,15 +151,26 @@ export default function LearnPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
-  // Build queue exactly once
+  // Build queue when data is ready, or when a new session is requested
   useEffect(() => {
-    if (queueBuilt.current || words.length === 0) return;
-    queueBuilt.current = true;
+    if (words.length === 0 || srsMap.size === 0) return;
 
     const plan = getDailyPlan(settings.dailyNewTarget, settings.dailyReviewTarget);
     const q = buildSessionQueue(plan.newItems, plan.reviewItems, plan.extraItems);
     setQueue(q);
-  }, [words, getDailyPlan, settings.dailyNewTarget, settings.dailyReviewTarget]);
+    setIdx(0);
+    setPhase('ready');
+    setSessionStats({ reviewed: 0, newLearned: 0, correct: 0 });
+    sessionStart.current = Date.now();
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initial build once data is loaded
+  const initialBuilt = useRef(false);
+  useEffect(() => {
+    if (initialBuilt.current || words.length === 0 || srsMap.size === 0) return;
+    initialBuilt.current = true;
+    setSessionId(prev => prev + 1);
+  }, [words, srsMap]);
 
   const cur = queue[idx] as QueueItem | undefined;
 
@@ -347,7 +358,7 @@ export default function LearnPage() {
 
   // Empty / loading
   if (queue.length === 0) {
-    if (!queueBuilt.current) {
+    if (words.length === 0 || srsMap.size === 0) {
       return (
         <div className="p-4 flex items-center justify-center min-h-[60vh]">
           <div className="text-gray-400 animate-pulse">{t('common.loading', lang)}</div>
@@ -368,6 +379,10 @@ export default function LearnPage() {
   // Session complete
   if (phase === 'done') {
     const pct = sessionStats.reviewed > 0 ? Math.round((sessionStats.correct / sessionStats.reviewed) * 100) : 0;
+    const startNewSession = () => {
+      initialBuilt.current = false;
+      setSessionId(prev => prev + 1);
+    };
     return (
       <div className="p-4 page-enter flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
@@ -391,7 +406,14 @@ export default function LearnPage() {
             <div className="text-xs text-gray-500">{t('stats.accuracy', lang)}</div>
           </div>
         </div>
-        <button onClick={() => router.push('/')} className="btn-primary">{t('common.back', lang)}</button>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button onClick={startNewSession} className="btn-primary w-full py-3">
+            {lang === 'nl' ? 'Volgende sessie starten' : 'Start next session'}
+          </button>
+          <button onClick={() => router.push('/')} className="btn-secondary w-full">
+            {t('common.back', lang)}
+          </button>
+        </div>
       </div>
     );
   }
