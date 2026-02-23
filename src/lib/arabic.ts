@@ -19,33 +19,43 @@ export function normalizeArabic(text: string): string {
   return s;
 }
 
+function splitForms(text: string): string[] {
+  return text.split(/[،,;\/]+/).map(s => s.trim()).filter(Boolean);
+}
+
 export function arabicMatch(input: string, target: string, strict: boolean = false): boolean {
   if (strict) {
     return input.trim() === target.trim();
   }
-  return normalizeArabic(input) === normalizeArabic(target);
+  const inputNorm = normalizeArabic(input);
+  const forms = splitForms(target);
+  return forms.some(form => normalizeArabic(form) === inputNorm);
 }
 
 export function gradeArabicAnswer(input: string, target: string): number {
   const inputNorm = normalizeArabic(input);
-  const targetNorm = normalizeArabic(target);
+  const forms = splitForms(target);
 
-  if (inputNorm === targetNorm) {
-    if (removeHarakat(input.trim()) === removeHarakat(target.trim())) return 5;
-    return 4;
+  let bestGrade = 0;
+  for (const form of forms) {
+    const formNorm = normalizeArabic(form);
+
+    if (inputNorm === formNorm) {
+      if (removeHarakat(input.trim()) === removeHarakat(form.trim())) return 5;
+      bestGrade = Math.max(bestGrade, 4);
+      continue;
+    }
+
+    const dist = levenshtein(inputNorm, formNorm);
+    const maxLen = Math.max(inputNorm.length, formNorm.length);
+    if (maxLen === 0) continue;
+    const similarity = 1 - dist / maxLen;
+
+    if (similarity >= 0.85) bestGrade = Math.max(bestGrade, 3);
+    else if (similarity >= 0.6) bestGrade = Math.max(bestGrade, 2);
+    else if (similarity >= 0.4) bestGrade = Math.max(bestGrade, 1);
   }
-
-  // Check for close match (1-2 characters off)
-  const dist = levenshtein(inputNorm, targetNorm);
-  const maxLen = Math.max(inputNorm.length, targetNorm.length);
-
-  if (maxLen === 0) return 0;
-  const similarity = 1 - dist / maxLen;
-
-  if (similarity >= 0.85) return 3;
-  if (similarity >= 0.6) return 2;
-  if (similarity >= 0.4) return 1;
-  return 0;
+  return bestGrade;
 }
 
 function levenshtein(a: string, b: string): number {

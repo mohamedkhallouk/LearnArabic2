@@ -137,6 +137,7 @@ export default function LearnPage() {
   const [sessionStats, setSessionStats] = useState({ reviewed: 0, newLearned: 0, correct: 0 });
   const [enriching, setEnriching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const feedbackRef = useRef<HTMLDivElement>(null);
 
   // Build queue exactly once
   useEffect(() => {
@@ -277,31 +278,39 @@ export default function LearnPage() {
     }
   }, [cur, idx, queue.length, advance, correct]);
 
+  const scrollToFeedback = useCallback(() => {
+    setTimeout(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+  }, []);
+
   const handleChoice = useCallback((i: number) => {
     if (picked !== null) return;
     setPicked(i);
     const isCorrect = i === correctIdx;
     setCorrect(isCorrect);
     setPhase('feedback');
-  }, [picked, correctIdx]);
+    scrollToFeedback();
+  }, [picked, correctIdx, scrollToFeedback]);
 
   const handleTypedSubmit = useCallback(() => {
     if (!cur || !answer.trim()) return;
     const grade = gradeArabicAnswer(answer, cur.word.arabic_raw);
     setCorrect(grade >= 3);
     setPhase('feedback');
-  }, [cur, answer]);
+    scrollToFeedback();
+  }, [cur, answer, scrollToFeedback]);
 
   const handleClozeSubmit = useCallback(() => {
     if (!cur || !answer.trim()) return;
     setCorrect(arabicMatch(answer, cur.word.arabic_raw));
     setPhase('feedback');
-  }, [cur, answer]);
+    scrollToFeedback();
+  }, [cur, answer, scrollToFeedback]);
 
   const handleReveal = useCallback(() => {
     setCorrect(false);
     setPhase('feedback');
-  }, []);
+    scrollToFeedback();
+  }, [scrollToFeedback]);
 
   const handleGenerateMore = useCallback(async () => {
     if (!cur || !apiKey || loadingMore) return;
@@ -403,16 +412,17 @@ export default function LearnPage() {
 
   /* ---- Feedback banner (shown inline in exercise) ---- */
   const feedbackBanner = phase === 'feedback' && (
-    <div className={`rounded-xl p-4 mb-4 border-2 text-center ${
+    <div ref={feedbackRef} className={`rounded-xl p-3 mb-3 border-2 text-center ${
       correct ? 'border-emerald-400 bg-emerald-50' : 'border-red-300 bg-red-50'
     }`}>
-      <div className={`text-sm font-semibold mb-2 ${correct ? 'text-emerald-700' : 'text-red-600'}`}>
+      <div className={`text-sm font-semibold ${correct ? 'text-emerald-700' : 'text-red-600'}`}>
         {correct ? t('learn.correct', lang) : t('learn.incorrect', lang)}
       </div>
-      <div className="arabic-large">{displayAr}</div>
-      {tr && <div className="text-gray-500 text-sm mt-1">{tr}</div>}
-      <div className="text-gray-800 font-medium mt-1">{meaning}</div>
-      <div className="flex justify-center mt-2">
+      <div className="arabic-text text-2xl font-bold mt-1">{displayAr}</div>
+      <div className="flex items-center justify-center gap-2 mt-1">
+        {tr && <span className="text-gray-500 text-sm">{tr}</span>}
+        <span className="text-gray-300">·</span>
+        <span className="text-gray-800 text-sm font-medium">{meaning}</span>
         <AudioButton itemId={w.id} text={displayAr} type="word" size="sm" />
       </div>
     </div>
@@ -476,18 +486,18 @@ export default function LearnPage() {
           {/* --- Recognition: Arabic → pick meaning --- */}
           {cur.exerciseType === 'recognition' && phase === 'ready' && (
             <>
-              <p className="text-sm text-gray-500 mb-3">{t('learn.selectMeaning', lang)}</p>
-              <div className="card text-center py-7 mb-5">
+              <p className="text-sm text-gray-500 mb-2">{t('learn.selectMeaning', lang)}</p>
+              <div className="card text-center py-4 mb-3">
                 <div className="arabic-large">{displayAr}</div>
-                {tr && <div className="text-gray-400 text-sm mt-2">{tr}</div>}
-                <div className="flex justify-center mt-3">
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  {tr && <span className="text-gray-400 text-sm">{tr}</span>}
                   <AudioButton itemId={w.id} text={displayAr} type="word" size="sm" />
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {choices.map((c, i) => (
                   <button key={i} onClick={() => handleChoice(i)}
-                    className="choice-btn w-full text-left px-4 py-3 text-sm">
+                    className="choice-btn w-full text-left px-4 py-2.5 text-sm">
                     {c}
                   </button>
                 ))}
@@ -497,17 +507,9 @@ export default function LearnPage() {
 
           {cur.exerciseType === 'recognition' && phase === 'feedback' && (
             <>
-              <p className="text-sm text-gray-500 mb-3">{t('learn.selectMeaning', lang)}</p>
-              <div className="card text-center py-7 mb-5">
-                <div className="arabic-large">{displayAr}</div>
-                {tr && <div className="text-gray-400 text-sm mt-2">{tr}</div>}
-                <div className="flex justify-center mt-3">
-                  <AudioButton itemId={w.id} text={displayAr} type="word" size="sm" />
-                </div>
-              </div>
-              <div className="space-y-2 mb-5">
+              <div className="space-y-1.5 mb-3">
                 {choices.map((c, i) => (
-                  <div key={i} className={`choice-btn w-full text-left px-4 py-3 text-sm pointer-events-none
+                  <div key={i} className={`choice-btn w-full text-left px-4 py-2.5 text-sm pointer-events-none
                     ${i === correctIdx ? 'correct' : ''}
                     ${picked === i && i !== correctIdx ? 'incorrect' : ''}`}>
                     {c}
@@ -524,17 +526,17 @@ export default function LearnPage() {
           {/* --- Reverse Recognition: meaning → pick Arabic --- */}
           {cur.exerciseType === 'reverseRecognition' && phase === 'ready' && (
             <>
-              <p className="text-sm text-gray-500 mb-3">
+              <p className="text-sm text-gray-500 mb-2">
                 {lang === 'nl' ? 'Selecteer het juiste Arabische woord' : 'Select the correct Arabic word'}
               </p>
-              <div className="card text-center py-7 mb-5">
+              <div className="card text-center py-4 mb-3">
                 <div className="text-xl font-semibold text-gray-900">{meaning}</div>
                 {w.pos && <div className="text-xs text-gray-400 mt-1">{w.pos}</div>}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {arabicChoices.map((c, i) => (
                   <button key={i} onClick={() => handleChoice(i)}
-                    className="choice-btn w-full text-center px-4 py-4 arabic-text text-2xl">
+                    className="choice-btn w-full text-center px-4 py-3 arabic-text text-2xl">
                     {c}
                   </button>
                 ))}
@@ -544,16 +546,9 @@ export default function LearnPage() {
 
           {cur.exerciseType === 'reverseRecognition' && phase === 'feedback' && (
             <>
-              <p className="text-sm text-gray-500 mb-3">
-                {lang === 'nl' ? 'Selecteer het juiste Arabische woord' : 'Select the correct Arabic word'}
-              </p>
-              <div className="card text-center py-7 mb-5">
-                <div className="text-xl font-semibold text-gray-900">{meaning}</div>
-                {w.pos && <div className="text-xs text-gray-400 mt-1">{w.pos}</div>}
-              </div>
-              <div className="space-y-2 mb-5">
+              <div className="space-y-1.5 mb-3">
                 {arabicChoices.map((c, i) => (
-                  <div key={i} className={`choice-btn w-full text-center px-4 py-4 arabic-text text-2xl pointer-events-none
+                  <div key={i} className={`choice-btn w-full text-center px-4 py-3 arabic-text text-2xl pointer-events-none
                     ${i === correctIdx ? 'correct' : ''}
                     ${picked === i && i !== correctIdx ? 'incorrect' : ''}`}>
                     {c}
@@ -599,17 +594,17 @@ export default function LearnPage() {
           {/* --- Listening: audio → pick meaning --- */}
           {cur.exerciseType === 'listening' && phase === 'ready' && (
             <>
-              <p className="text-sm text-gray-500 mb-3">{t('learn.listenSelect', lang)}</p>
-              <div className="card text-center py-8 mb-5">
+              <p className="text-sm text-gray-500 mb-2">{t('learn.listenSelect', lang)}</p>
+              <div className="card text-center py-5 mb-3">
                 <AudioButton itemId={w.id} text={displayAr} type="word" />
-                <p className="text-xs text-gray-400 mt-3">
+                <p className="text-xs text-gray-400 mt-2">
                   {lang === 'nl' ? 'Luister en kies' : 'Listen and choose'}
                 </p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {choices.map((c, i) => (
                   <button key={i} onClick={() => handleChoice(i)}
-                    className="choice-btn w-full text-left px-4 py-3 text-sm">
+                    className="choice-btn w-full text-left px-4 py-2.5 text-sm">
                     {c}
                   </button>
                 ))}
@@ -619,13 +614,9 @@ export default function LearnPage() {
 
           {cur.exerciseType === 'listening' && phase === 'feedback' && (
             <>
-              <p className="text-sm text-gray-500 mb-3">{t('learn.listenSelect', lang)}</p>
-              <div className="card text-center py-8 mb-5">
-                <AudioButton itemId={w.id} text={displayAr} type="word" />
-              </div>
-              <div className="space-y-2 mb-5">
+              <div className="space-y-1.5 mb-3">
                 {choices.map((c, i) => (
-                  <div key={i} className={`choice-btn w-full text-left px-4 py-3 text-sm pointer-events-none
+                  <div key={i} className={`choice-btn w-full text-left px-4 py-2.5 text-sm pointer-events-none
                     ${i === correctIdx ? 'correct' : ''}
                     ${picked === i && i !== correctIdx ? 'incorrect' : ''}`}>
                     {c}
